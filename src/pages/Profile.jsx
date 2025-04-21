@@ -17,6 +17,7 @@ import getDeclension from "@dubaua/get-declension";
 import CreateGiftModal from "../components/CreateGiftModal.jsx";
 import { useNavigate } from "react-router-dom";
 import useClickOutside from "../hooks/useClickOutside.js";
+import DeleteConfirmationModal from "../components/DeleteConfirmationModal.jsx";
 
 const WishlistCard = ({ wishlist, onEdit, onDelete, onAddGift }) => {
   const navigate = useNavigate();
@@ -246,9 +247,8 @@ const Profile = () => {
   const [notAuthorized, setNotAuthorized] = useState(false);
   const [isCreateWishlistModalOpen, setIsCreateWishlistModalOpen] =
     useState(false);
-  const [isDeleteWishlistModalOpen, setIsDeleteWishlistModalOpen] =
-    useState(false);
-  const [wishlistToDelete, setWishlistToDelete] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteItem, setDeleteItem] = useState(null);
   const [wishlistToEdit, setWishlistToEdit] = useState(null);
   const wishlistCount = profile?.wishlists ? profile.wishlists.length : 0;
 
@@ -274,6 +274,11 @@ const Profile = () => {
     setProfile(null);
   };
 
+  const handleRequestDeleteWishlist = (wishlist) => {
+    setDeleteItem(wishlist);
+    setIsDeleteModalOpen(true);
+  };
+
   const handleDeleteWishlist = async (wishlist) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -282,7 +287,7 @@ const Profile = () => {
     }
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/wishlist/${wishlist._id}`,
+        `${import.meta.env.VITE_API_URL}/api/wishlist/${deleteItem._id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -291,9 +296,9 @@ const Profile = () => {
       if (!res.ok) throw new Error("Ошибка удаления вишлиста");
       setProfile((prev) => ({
         ...prev,
-        wishlists: prev.wishlists.filter((w) => w._id !== wishlist._id),
+        wishlists: prev.wishlists.filter((w) => w._id !== deleteItem._id),
       }));
-      setIsDeleteWishlistModalOpen(false);
+      setIsDeleteModalOpen(false);
     } catch (err) {
       console.error("Ошибка удаления вишлиста:", err);
     }
@@ -398,7 +403,7 @@ const Profile = () => {
                 key={wishlist._id}
                 wishlist={wishlist}
                 onEdit={handleEditWishlist}
-                onDelete={handleDeleteWishlist}
+                onDelete={() => handleRequestDeleteWishlist(wishlist)}
                 onAddGift={handleAddGift}
               />
             ))}
@@ -429,33 +434,13 @@ const Profile = () => {
           }}
         />
       )}
-      <Dialog
-        open={isDeleteWishlistModalOpen}
-        handler={() => setIsDeleteWishlistModalOpen(false)}
-      >
-        <DialogHeader>Удалить вишлист</DialogHeader>
-        <DialogBody>
-          <p>Вы уверены, что хотите удалить вишлист?</p>
-        </DialogBody>
-        <DialogFooter>
-          <Button
-            variant="text"
-            color="red"
-            onClick={() => setIsDeleteWishlistModalOpen(false)}
-          >
-            Отмена
-          </Button>
-          <Button
-            variant="gradient"
-            color="green"
-            onClick={() =>
-              wishlistToDelete && handleDeleteWishlist(wishlistToDelete)
-            }
-          >
-            Удалить
-          </Button>
-        </DialogFooter>
-      </Dialog>
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteWishlist}
+        itemType="wishlist"
+        itemName={deleteItem ? deleteItem.title : ""}
+      />
     </div>
   );
 };
